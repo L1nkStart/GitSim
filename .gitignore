@@ -2,4 +2,10 @@
 logs
 *.log
 
+__pycache__
+*.pyc
 
+# Runtime data
+pids
+*.pid
+*.seed
