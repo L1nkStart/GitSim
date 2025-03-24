@@ -1,0 +1,11 @@
+{
+  "enabled_commands": [
+    "status",
+    "log",
+    "commit",
+    "add",
+    "checkout",
+    "pr",
+    "init"
+  ]
+}
