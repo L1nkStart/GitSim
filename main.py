@@ -19,7 +19,10 @@ def main():
                 print(cli.get_help())
                 continue
             
-            # Parse command and arguments
+            if command.startswith("git"):
+                print("No incluir la palabra 'git' en los comandos")
+                continue
+            
             parts = command.split()
             if not parts:
                 continue

@@ -60,8 +60,8 @@ class GitSimCLI:
             return f"Error: {str(e)}"
     
     def get_help(self) -> str:
-        """Get help information for all enabled commands."""
-        help_text = ["Available commands:"]
+        """Menu de ayuda para los comandos."""
+        help_text = ["Comandos permitidos:"]
         for name, cmd in self.commands.items():
             if self.config.is_command_enabled(name):
                 if isinstance(cmd, dict):  # PR subcommands
