@@ -1,5 +1,5 @@
 """
-Command-line interface for the Git simulation system.
+Interfaz de línea de comandos para el sistema de simulación Git.
 """
 from typing import Dict, Optional
 from .repository_manager import RepositoryManager
@@ -15,8 +15,11 @@ from .config import Config
 
 class GitSimCLI:
     def __init__(self):
+        # Configuración del sistema y gestor de repositorios
         self.config = Config()
         self.repo_manager = RepositoryManager()
+        
+        # Diccionario de comandos disponibles
         self.commands: Dict[str, Command] = {
             'init': InitCommand(self.repo_manager),
             'add': AddCommand(self.repo_manager),
@@ -26,36 +29,39 @@ class GitSimCLI:
             'status': StatusCommand(self.repo_manager),
             'log': LogCommand(self.repo_manager),
             'pr': {
-                'create': PRCreateCommand(self.repo_manager),
-                'status': PRStatusCommand(self.repo_manager),
-                'review': PRReviewCommand(self.repo_manager),
-                'approve': PRApproveCommand(self.repo_manager),
-                'reject': PRRejectCommand(self.repo_manager),
-                'cancel': PRCancelCommand(self.repo_manager),
-                'list': PRListCommand(self.repo_manager),
-                'next': PRNextCommand(self.repo_manager),
-                'tag': PRTagCommand(self.repo_manager),
-                'clear': PRClearCommand(self.repo_manager)
+                'create': PRCreateCommand(self.repo_manager),  # Crear PR
+                'status': PRStatusCommand(self.repo_manager),  # Ver estado de PR
+                'review': PRReviewCommand(self.repo_manager),  # Añadir revisor a PR
+                'approve': PRApproveCommand(self.repo_manager),  # Aprobar PR
+                'reject': PRRejectCommand(self.repo_manager),  # Rechazar PR
+                'cancel': PRCancelCommand(self.repo_manager),  # Cancelar PR
+                'list': PRListCommand(self.repo_manager),  # Listar PRs
+                'next': PRNextCommand(self.repo_manager),  # Ver siguiente PR en cola
+                'tag': PRTagCommand(self.repo_manager),  # Añadir etiqueta a PR
+                'clear': PRClearCommand(self.repo_manager)  # Limpiar todos los PRs
             }
         }
     
     def execute(self, command: str, *args: str) -> str:
-        """Execute a git command."""
+        """Ejecuta un comando git y devuelve el resultado como cadena."""
+        # Verifica si el comando existe
         if command not in self.commands:
-            return f"Error: Unknown command '{command}'"
+            return f"Error: Comando desconocido '{command}'"
         
+        # Verifica si el comando está habilitado en la configuración
         if not self.config.is_command_enabled(command):
-            return f"Error: Command '{command}' is disabled"
+            return f"Error: Comando '{command}' está deshabilitado"
         
-        # Handle PR subcommands
+        # Manejo especial para subcomandos de PR
         if command == 'pr':
             if not args:
-                return "Error: PR subcommand required"
+                return "Error: Se requiere subcomando para PR"
             subcommand = args[0]
             if subcommand not in self.commands['pr']:
-                return f"Error: Unknown PR subcommand '{subcommand}'"
+                return f"Error: Subcomando de PR desconocido '{subcommand}'"
             return self.commands['pr'][subcommand].execute(*args[1:])
         
+        # Ejecuta el comando normal
         try:
             return self.commands[command].execute(*args)
         except Exception as e:
@@ -66,8 +72,8 @@ class GitSimCLI:
         help_text = ["Available commands:"]
         for name, cmd in self.commands.items():
             if self.config.is_command_enabled(name):
-                if isinstance(cmd, dict):  # PR subcommands
-                    help_text.append(f"\n{name} subcommands:")
+                if isinstance(cmd, dict):  # Manejo de subcomandos de PR
+                    help_text.append(f"\n{name} subcomandos:")
                     for subname, subcmd in cmd.items():
                         help_text.append(f"  {subcmd.get_help()}")
                 else:

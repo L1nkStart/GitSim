@@ -1,5 +1,5 @@
 """
-Repository manager for handling multiple Git repositories.
+Gestor de repositorios para manejar múltiples repositorios Git.
 """
 from typing import Dict, Optional
 from .data_structures import LinkedList
@@ -7,32 +7,33 @@ from .repository import Repository
 
 class RepositoryManager:
     def __init__(self):
+        # Lista de repositorios y repositorio actual
         self.repositories = LinkedList()
         self.current_repository: Optional[Repository] = None
     
     def create_repository(self, name: str, path: str) -> Repository:
-        """Create a new repository."""
+        """Crea un nuevo repositorio."""
         repo = Repository(name, path)
         self.repositories.append(repo)
         self.current_repository = repo
         return repo
     
     def switch_repository(self, name: str) -> None:
-        """Switch to a different repository."""
+        """Cambia a un repositorio diferente."""
         node = self.repositories.find(lambda r: r.name == name)
         if not node:
-            raise ValueError(f"Repository '{name}' not found")
+            raise ValueError(f"Repositorio '{name}' no encontrado")
         self.current_repository = node.data
     
     def list_repositories(self) -> list[str]:
-        """List all repositories."""
+        """Lista todos los repositorios."""
         return [repo.name for repo in self.repositories.to_list()]
     
     def delete_repository(self, name: str) -> None:
-        """Delete a repository."""
+        """Elimina un repositorio."""
         repo = next((r for r in self.repositories.to_list() if r.name == name), None)
         if not repo:
-            raise ValueError(f"Repository '{name}' not found")
+            raise ValueError(f"Repositorio '{name}' no encontrado")
         
         self.repositories.remove(repo)
         if self.current_repository and self.current_repository.name == name:

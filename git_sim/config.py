@@ -1,23 +1,24 @@
 """
-Configuration management for Git simulation system.
+Gestión de configuración para el sistema de simulación Git.
 """
 import json
 from typing import Dict, Set
 
 class Config:
     def __init__(self, config_file: str = "git_sim_config.json"):
+        # Archivo de configuración y comandos habilitados
         self.config_file = config_file
         self.enabled_commands: Set[str] = set()
         self.load_config()
     
     def load_config(self) -> None:
-        """Load configuration from file."""
+        """Carga la configuración desde el archivo."""
         try:
             with open(self.config_file, 'r') as f:
                 config = json.load(f)
                 self.enabled_commands = set(config.get('enabled_commands', []))
         except FileNotFoundError:
-            # Default configuration with all commands enabled
+            # Configuración por defecto con todos los comandos habilitados
             self.enabled_commands = {
                 'init', 'add', 'commit', 'branch', 'checkout', 'status', 'log',
                 'pr'  # PR commands are handled as subcommands
@@ -25,7 +26,7 @@ class Config:
             self.save_config()
     
     def save_config(self) -> None:
-        """Save configuration to file."""
+        """Guarda la configuración en el archivo."""
         config = {
             'enabled_commands': list(self.enabled_commands)
         }
@@ -33,15 +34,15 @@ class Config:
             json.dump(config, f, indent=2)
     
     def is_command_enabled(self, command: str) -> bool:
-        """Check if a command is enabled."""
+        """Verifica si un comando está habilitado."""
         return command in self.enabled_commands
     
     def enable_command(self, command: str) -> None:
-        """Enable a command."""
+        """Habilita un comando."""
         self.enabled_commands.add(command)
         self.save_config()
     
     def disable_command(self, command: str) -> None:
-        """Disable a command."""
+        """Deshabilita un comando."""
         self.enabled_commands.discard(command)
         self.save_config()

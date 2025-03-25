@@ -1,13 +1,13 @@
 """
-Main entry point for the Git simulation system.
+Punto de entrada principal para el sistema de la simulacion de git
 """
 from git_sim.cli import GitSimCLI
 
 def main():
     cli = GitSimCLI()
-    print("Git Simulation System")
-    print("Type 'help' for command list")
-    print("Type 'exit' to quit")
+    print("Sistema Simulado de Git")
+    print("Escribe 'help' para obtener la lista de comandos")
+    print("Escribe 'exit' para salir")
     
     while True:
         try:
@@ -31,7 +31,7 @@ def main():
             print(result)
             
         except KeyboardInterrupt:
-            print("\nExiting...")
+            print("\nSaliendo...")
             break
         except Exception as e:
             print(f"Error: {str(e)}")

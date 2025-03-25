@@ -1,5 +1,5 @@
 """
-Main repository implementation for the Git simulation system.
+Implementación principal del repositorio para el sistema de simulación Git.
 """
 import os
 import hashlib
@@ -12,6 +12,7 @@ from .data_structures import (
 
 class Repository:
     def __init__(self, name: str, path: str):
+        # Propiedades básicas del repositorio
         self.name = name
         self.path = path
         self.staging_stack = Stack()  # Stack of StagedFile objects
@@ -26,7 +27,7 @@ class Repository:
         self.pr_map: Dict[str, PullRequest] = {}  # ID -> PullRequest mapping
     
     def calculate_file_hash(self, content: str) -> str:
-        """Calculate SHA-1 hash of file content."""
+        """Calcula el hash SHA-1 del contenido de un archivo."""
         return hashlib.sha1(content.encode()).hexdigest()
     
     def list_branches(self) -> List[str]:
@@ -34,11 +35,12 @@ class Repository:
         return list(self.branches.keys())
     
     def create_pull_request(self, title: str, description: str, source_branch: str, target_branch: str, author: str) -> str:
-        """Create a new pull request."""
+        """Crea un nuevo pull request."""
+        # Validación de ramas
         if source_branch not in self.branches:
-            raise ValueError(f"Source branch '{source_branch}' does not exist")
+            raise ValueError(f"Rama origen '{source_branch}' no existe")
         if target_branch not in self.branches:
-            raise ValueError(f"Target branch '{target_branch}' does not exist")
+            raise ValueError(f"Rama destino '{target_branch}' no existe")
         
         # Get commits that are in source branch but not in target branch
         source_commits = self._get_branch_commits(source_branch)
@@ -46,7 +48,7 @@ class Repository:
         unique_commits = [c for c in source_commits if c not in target_commits]
         
         if not unique_commits:
-            raise ValueError("No changes to merge")
+            raise ValueError("No hay cambios para fusionar")
         
         # Get modified files from these commits
         modified_files = set()
@@ -78,7 +80,7 @@ class Repository:
         return pr_id
     
     def _get_branch_commits(self, branch_name: str) -> List[str]:
-        """Get all commit IDs in a branch."""
+        """Obtiene todos los IDs de commit en una rama."""
         commits = []
         current = self.branches[branch_name]
         while current:
@@ -87,87 +89,88 @@ class Repository:
         return commits
     
     def get_pull_request(self, pr_id: str) -> Optional[PullRequest]:
-        """Get a pull request by ID."""
+        """Obtiene un pull request por ID."""
         return self.pr_map.get(pr_id)
     
     def review_pull_request(self, pr_id: str, reviewer: str) -> None:
-        """Add a reviewer to a pull request."""
+        """Añade un revisor a un pull request."""
         pr = self.get_pull_request(pr_id)
         if not pr:
-            raise ValueError(f"Pull request '{pr_id}' not found")
+            raise ValueError(f"Pull request '{pr_id}' no encontrado")
         if pr.status != "open":
-            raise ValueError(f"Pull request '{pr_id}' is not open")
+            raise ValueError(f"Pull request '{pr_id}' no está abierto")
         pr.reviewers.add(reviewer)
     
     def approve_pull_request(self, pr_id: str) -> None:
-        """Approve a pull request."""
+        """Aprueba un pull request."""
         pr = self.get_pull_request(pr_id)
         if not pr:
-            raise ValueError(f"Pull request '{pr_id}' not found")
+            raise ValueError(f"Pull request '{pr_id}' no encontrado")
         if pr.status != "open":
-            raise ValueError(f"Pull request '{pr_id}' is not open")
+            raise ValueError(f"Pull request '{pr_id}' no está abierto")
         pr.status = "approved"
         pr.closed_at = datetime.now()
     
     def reject_pull_request(self, pr_id: str) -> None:
-        """Reject a pull request."""
+        """Rechaza un pull request."""
         pr = self.get_pull_request(pr_id)
         if not pr:
-            raise ValueError(f"Pull request '{pr_id}' not found")
+            raise ValueError(f"Pull request '{pr_id}' no encontrado")
         if pr.status != "open":
-            raise ValueError(f"Pull request '{pr_id}' is not open")
+            raise ValueError(f"Pull request '{pr_id}' no está abierto")
         pr.status = "rejected"
         pr.closed_at = datetime.now()
     
     def cancel_pull_request(self, pr_id: str) -> None:
-        """Cancel a pull request."""
+        """Cancela un pull request."""
         pr = self.get_pull_request(pr_id)
         if not pr:
-            raise ValueError(f"Pull request '{pr_id}' not found")
+            raise ValueError(f"Pull request '{pr_id}' no encontrado")
         if pr.status != "open":
-            raise ValueError(f"Pull request '{pr_id}' is not open")
+            raise ValueError(f"Pull request '{pr_id}' no está abierto")
         pr.status = "cancelled"
         pr.closed_at = datetime.now()
     
     def list_pull_requests(self) -> List[PullRequest]:
-        """List all pull requests."""
+        """Lista todos los pull requests."""
         result = []
         temp_queue = Queue()
         
+        # Vacía la cola principal temporalmente
         while not self.pull_requests.is_empty():
             pr = self.pull_requests.dequeue()
             result.append(pr)
             temp_queue.enqueue(pr)
         
-        # Restore queue
+        # Restaura la cola original
         while not temp_queue.is_empty():
             self.pull_requests.enqueue(temp_queue.dequeue())
         
         return result
     
     def get_next_pull_request(self) -> Optional[PullRequest]:
-        """Get the next pull request in the queue."""
+        """Obtiene el siguiente pull request en la cola."""
         return self.pull_requests.peek()
     
     def tag_pull_request(self, pr_id: str, tag: str) -> None:
-        """Add a tag to a pull request."""
+        """Añade una etiqueta a un pull request."""
         pr = self.get_pull_request(pr_id)
         if not pr:
-            raise ValueError(f"Pull request '{pr_id}' not found")
+            raise ValueError(f"Pull request '{pr_id}' no encontrado")
         pr.tags.add(tag)
     
     def clear_pull_requests(self) -> None:
-        """Clear all pull requests."""
+        """Limpia todos los pull requests."""
         self.pull_requests.clear()
         self.pr_map.clear()
     
     def add(self, filename: str, content: str) -> None:
-        """Add a file to the staging area using a stack."""
+        """Añade un archivo al área de staging usando una pila."""
         self.working_directory[filename] = content
         file_hash = self.calculate_file_hash(content)
         
-        # Determine file status
-        status = 'A'  # Added by default
+        # Determina el estado del archivo
+        status = 'A'  # Añadido por defecto
         last_commit_id = None
         
         if self.head:
@@ -175,7 +178,7 @@ class Repository:
             if filename in current_commit.changes:
                 old_content = current_commit.changes[filename]
                 if old_content != content:
-                    status = 'M'  # Modified
+                    status = 'M'  # Modificado
                 last_commit_id = self.head
         
         staged_file = StagedFile(
@@ -199,9 +202,9 @@ class Repository:
         self.staging_stack.push(staged_file)
     
     def commit(self, message: str, author_email: str) -> str:
-        """Create a new commit with the current staging area contents."""
+        """Crea un nuevo commit con los contenidos del área de staging."""
         if self.staging_stack.is_empty():
-            raise ValueError("Nothing to commit")
+            raise ValueError("Nada para commitear")
         
         # Collect all staged files
         changes: Dict[str, str] = {}
@@ -269,7 +272,7 @@ class Repository:
         self.staging_stack.clear()
     
     def checkout_commit(self, commit_id: str) -> None:
-        """Checkout a specific commit."""
+        """Cambia a un commit específico."""
         if commit_id not in self.commits:
             raise ValueError(f"Commit '{commit_id}' not found")
         
@@ -283,7 +286,7 @@ class Repository:
         self.staging_stack.clear()
     
     def status(self) -> List[FileStatus]:
-        """Get the status of files in the working directory and staging area."""
+        """Obtiene el estado de los archivos en el directorio de trabajo y área de staging."""
         status_list = []
         staged_files = set()
         
@@ -311,7 +314,7 @@ class Repository:
         return status_list
     
     def get_commit_history(self) -> List[Commit]:
-        """Return the commit history for the current branch."""
+        """Devuelve el historial de commits para la rama actual."""
         history = []
         current = self.head
         while current:
