@@ -136,6 +136,7 @@ El sistema utiliza un archivo de configuración JSON (`git_sim_config.json`) par
     "commit",
     "checkout",
     "status",
+    "branch",
     "log",
     "pr"
   ]
