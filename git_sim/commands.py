@@ -1,102 +1,110 @@
 """
-Command pattern implementation for Git operations.
+Implementación del patrón Command para operaciones Git.
 """
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional
 from datetime import datetime
 from .repository_manager import RepositoryManager
 
+# Clase abstracta base para todos los comandos
 class Command(ABC):
     @abstractmethod
     def execute(self, *args) -> str:
+        """Método abstracto para ejecutar el comando."""
         pass
     
     @abstractmethod
     def get_help(self) -> str:
+        """Método abstracto para obtener texto de ayuda."""
         pass
 
+# Comando para inicializar un repositorio
 class InitCommand(Command):
     def __init__(self, repo_manager: RepositoryManager):
         self.repo_manager = repo_manager
     
     def execute(self, *args) -> str:
         if len(args) < 2:
-            return "Error: Required arguments: <name> <path>"
-        name, path = args[0], args[1]
-        self.repo_manager.create_repository(name, path)
-        return f"Initialized empty Git repository '{name}' at '{path}'"
+            return "Error: Argumentos requeridos: <nombre> <ruta>"
+        nombre, ruta = args[0], args[1]
+        self.repo_manager.create_repository(nombre, ruta)
+        return f"Repositorio Git vacío inicializado '{nombre}' en '{ruta}'"
     
     def get_help(self) -> str:
-        return "git init <name> <path> - Create a new repository"
+        return "git init <nombre> <ruta> - Crea un nuevo repositorio"
 
+# Comando para añadir archivos al área de staging
 class AddCommand(Command):
     def __init__(self, repo_manager: RepositoryManager):
         self.repo_manager = repo_manager
     
     def execute(self, *args) -> str:
         if not args:
-            return "Error: Required argument: <file>"
+            return "Error: Argumento requerido: <archivo>"
         
         repo = self.repo_manager.current_repository
         if not repo:
-            return "Error: No repository selected"
+            return "Error: No hay repositorio seleccionado"
         
-        filename = args[0]
+        nombre_archivo = args[0]
         try:
-            with open(filename, 'r') as f:
-                content = f.read()
-            repo.add(filename, content)
-            return f"Added {filename} to staging area"
+            with open(nombre_archivo, 'r') as f:
+                contenido = f.read()
+            repo.add(nombre_archivo, contenido)
+            return f"Añadido {nombre_archivo} al área de staging"
         except FileNotFoundError:
-            return f"Error: File '{filename}' not found"
+            return f"Error: Archivo '{nombre_archivo}' no encontrado"
     
     def get_help(self) -> str:
-        return "git add <file> - Add file to staging area"
+        return "git add <archivo> - Añade archivo al área de staging"
 
+# Comando para crear un nuevo commit
 class CommitCommand(Command):
     def __init__(self, repo_manager: RepositoryManager):
         self.repo_manager = repo_manager
     
     def execute(self, *args) -> str:
         if len(args) < 2 or args[0] != '-m':
-            return 'Error: Required format: commit -m "<message>"'
+            return 'Error: Formato requerido: commit -m "<mensaje>"'
         
         repo = self.repo_manager.current_repository
         if not repo:
-            return "Error: No repository selected"
+            return "Error: No hay repositorio seleccionado"
         
-        message = args[1]
+        mensaje = args[1]
         try:
-            commit_id = repo.commit(message, "user@example.com")  # In a real system, this would come from config
-            return f"Created commit {commit_id}"
+            commit_id = repo.commit(mensaje, "user@example.com")
+            return f"Commit creado {commit_id}"
         except ValueError as e:
             return f"Error: {str(e)}"
     
     def get_help(self) -> str:
-        return 'git commit -m "<message>" - Create a new commit'
+        return 'git commit -m "<mensaje>" - Crea un nuevo commit'
 
+# Comando para cambiar a un commit específico
 class CheckoutCommand(Command):
     def __init__(self, repo_manager: RepositoryManager):
         self.repo_manager = repo_manager
     
     def execute(self, *args) -> str:
         if not args:
-            return "Error: Required argument: <commit_id>"
+            return "Error: Argumento requerido: <commit_id>"
         
         repo = self.repo_manager.current_repository
         if not repo:
-            return "Error: No repository selected"
+            return "Error: No hay repositorio seleccionado"
         
         commit_id = args[0]
         try:
             repo.checkout_commit(commit_id)
-            return f"HEAD is now at {commit_id}"
+            return f"HEAD está ahora en {commit_id}"
         except ValueError as e:
             return f"Error: {str(e)}"
     
     def get_help(self) -> str:
-        return "git checkout <commit_id> - Switch to specified commit"
+        return "git checkout <commit_id> - Cambia al commit especificado"
 
+# Comando para ver el estado del repositorio
 class StatusCommand(Command):
     def __init__(self, repo_manager: RepositoryManager):
         self.repo_manager = repo_manager
@@ -104,20 +112,21 @@ class StatusCommand(Command):
     def execute(self, *args) -> str:
         repo = self.repo_manager.current_repository
         if not repo:
-            return "Error: No repository selected"
+            return "Error: No hay repositorio seleccionado"
         
-        status_list = repo.status()
-        if not status_list:
-            return "Nothing to commit, working tree clean"
+        lista_estados = repo.status()
+        if not lista_estados:
+            return "Nada para commit, árbol de trabajo limpio"
         
-        output = ["Changes not staged for commit:"]
-        for status in status_list:
-            output.append(f"  {status.status}: {status.path}")
-        return "\n".join(output)
+        salida = ["Cambios no preparados para commit:"]
+        for estado in lista_estados:
+            salida.append(f"  {estado.status}: {estado.path}")
+        return "\n".join(salida)
     
     def get_help(self) -> str:
-        return "git status - Show working tree status"
+        return "git status - Muestra el estado del árbol de trabajo"
 
+# Comando para ver el historial de commits
 class LogCommand(Command):
     def __init__(self, repo_manager: RepositoryManager):
         self.repo_manager = repo_manager
@@ -125,179 +134,188 @@ class LogCommand(Command):
     def execute(self, *args) -> str:
         repo = self.repo_manager.current_repository
         if not repo:
-            return "Error: No repository selected"
+            return "Error: No hay repositorio seleccionado"
         
-        history = repo.get_commit_history()
-        if not history:
-            return "No commits yet"
+        historial = repo.get_commit_history()
+        if not historial:
+            return "Aún no hay commits"
         
-        output = []
-        for commit in history:
-            output.extend([
+        salida = []
+        for commit in historial:
+            salida.extend([
                 f"Commit: {commit.id}",
-                f"Author: {commit.author_email}",
-                f"Date: {commit.timestamp}",
-                f"Branch: {commit.branch}",
+                f"Autor: {commit.author_email}",
+                f"Fecha: {commit.timestamp}",
+                f"Rama: {commit.branch}",
                 f"\n    {commit.message}\n",
                 "-" * 40
             ])
-        return "\n".join(output)
+        return "\n".join(salida)
     
     def get_help(self) -> str:
-        return "git log - Show commit history"
+        return "git log - Muestra el historial de commits"
 
+# Comandos para Pull Requests (PRs):
+
+# Comando para crear un PR
 class PRCreateCommand(Command):
     def __init__(self, repo_manager: RepositoryManager):
         self.repo_manager = repo_manager
     
     def execute(self, *args) -> str:
         if len(args) < 4:
-            return "Error: Required arguments: <title> <source_branch> <target_branch> <description>"
+            return "Error: Argumentos requeridos: <título> <rama_origen> <rama_destino> <descripción>"
         
         repo = self.repo_manager.current_repository
         if not repo:
-            return "Error: No repository selected"
+            return "Error: No hay repositorio seleccionado"
         
-        title, source_branch, target_branch, *desc_parts = args
-        description = " ".join(desc_parts)
+        titulo, rama_origen, rama_destino, *partes_desc = args
+        descripcion = " ".join(partes_desc)
         
         try:
             pr_id = repo.create_pull_request(
-                title=title,
-                description=description,
-                source_branch=source_branch,
-                target_branch=target_branch,
-                author="user@example.com"  # In a real system, this would come from config
+                title=titulo,
+                description=descripcion,
+                source_branch=rama_origen,
+                target_branch=rama_destino,
+                author="user@example.com"
             )
-            return f"Created pull request {pr_id}"
+            return f"Pull request creado {pr_id}"
         except ValueError as e:
             return f"Error: {str(e)}"
     
     def get_help(self) -> str:
-        return "git pr create <title> <source_branch> <target_branch> <description> - Create a new pull request"
+        return "git pr create <título> <rama_origen> <rama_destino> <descripción> - Crea un nuevo pull request"
 
+# Comando para ver estado de un PR
 class PRStatusCommand(Command):
     def __init__(self, repo_manager: RepositoryManager):
         self.repo_manager = repo_manager
     
     def execute(self, *args) -> str:
         if not args:
-            return "Error: Required argument: <pr_id>"
+            return "Error: Argumento requerido: <pr_id>"
         
         repo = self.repo_manager.current_repository
         if not repo:
-            return "Error: No repository selected"
+            return "Error: No hay repositorio seleccionado"
         
         pr_id = args[0]
         pr = repo.get_pull_request(pr_id)
         if not pr:
-            return f"Error: Pull request '{pr_id}' not found"
+            return f"Error: Pull request '{pr_id}' no encontrado"
         
         return (
             f"Pull Request: {pr.id}\n"
-            f"Title: {pr.title}\n"
-            f"Status: {pr.status}\n"
-            f"Author: {pr.author}\n"
-            f"Created: {pr.created_at}\n"
-            f"Source: {pr.source_branch}\n"
-            f"Target: {pr.target_branch}\n"
-            f"Reviewers: {', '.join(pr.reviewers) if pr.reviewers else 'None'}\n"
-            f"Tags: {', '.join(pr.tags) if pr.tags else 'None'}\n"
-            f"Modified Files: {', '.join(pr.modified_files)}\n"
-            f"Description:\n{pr.description}"
+            f"Título: {pr.title}\n"
+            f"Estado: {pr.status}\n"
+            f"Autor: {pr.author}\n"
+            f"Creado: {pr.created_at}\n"
+            f"Origen: {pr.source_branch}\n"
+            f"Destino: {pr.target_branch}\n"
+            f"Revisores: {', '.join(pr.reviewers) if pr.reviewers else 'Ninguno'}\n"
+            f"Etiquetas: {', '.join(pr.tags) if pr.tags else 'Ninguna'}\n"
+            f"Archivos modificados: {', '.join(pr.modified_files)}\n"
+            f"Descripción:\n{pr.description}"
         )
     
     def get_help(self) -> str:
-        return "git pr status <pr_id> - Show pull request status"
+        return "git pr status <pr_id> - Muestra el estado de un pull request"
 
+# Comando para añadir revisor a un PR
 class PRReviewCommand(Command):
     def __init__(self, repo_manager: RepositoryManager):
         self.repo_manager = repo_manager
     
     def execute(self, *args) -> str:
         if len(args) < 2:
-            return "Error: Required arguments: <pr_id> <reviewer_email>"
+            return "Error: Argumentos requeridos: <pr_id> <email_revisor>"
         
         repo = self.repo_manager.current_repository
         if not repo:
-            return "Error: No repository selected"
+            return "Error: No hay repositorio seleccionado"
         
-        pr_id, reviewer = args
+        pr_id, revisor = args
         try:
-            repo.review_pull_request(pr_id, reviewer)
-            return f"Added reviewer {reviewer} to pull request {pr_id}"
+            repo.review_pull_request(pr_id, revisor)
+            return f"Revisor {revisor} añadido al pull request {pr_id}"
         except ValueError as e:
             return f"Error: {str(e)}"
     
     def get_help(self) -> str:
-        return "git pr review <pr_id> <reviewer_email> - Add a reviewer to a pull request"
+        return "git pr review <pr_id> <email_revisor> - Añade un revisor a un pull request"
 
+# Comando para aprobar un PR
 class PRApproveCommand(Command):
     def __init__(self, repo_manager: RepositoryManager):
         self.repo_manager = repo_manager
     
     def execute(self, *args) -> str:
         if not args:
-            return "Error: Required argument: <pr_id>"
+            return "Error: Argumento requerido: <pr_id>"
         
         repo = self.repo_manager.current_repository
         if not repo:
-            return "Error: No repository selected"
+            return "Error: No hay repositorio seleccionado"
         
         pr_id = args[0]
         try:
             repo.approve_pull_request(pr_id)
-            return f"Approved pull request {pr_id}"
+            return f"Pull request {pr_id} aprobado"
         except ValueError as e:
             return f"Error: {str(e)}"
     
     def get_help(self) -> str:
-        return "git pr approve <pr_id> - Approve a pull request"
+        return "git pr approve <pr_id> - Aprueba un pull request"
 
+# Comando para rechazar un PR
 class PRRejectCommand(Command):
     def __init__(self, repo_manager: RepositoryManager):
         self.repo_manager = repo_manager
     
     def execute(self, *args) -> str:
         if not args:
-            return "Error: Required argument: <pr_id>"
+            return "Error: Argumento requerido: <pr_id>"
         
         repo = self.repo_manager.current_repository
         if not repo:
-            return "Error: No repository selected"
+            return "Error: No hay repositorio seleccionado"
         
         pr_id = args[0]
         try:
             repo.reject_pull_request(pr_id)
-            return f"Rejected pull request {pr_id}"
+            return f"Pull request {pr_id} rechazado"
         except ValueError as e:
             return f"Error: {str(e)}"
     
     def get_help(self) -> str:
-        return "git pr reject <pr_id> - Reject a pull request"
+        return "git pr reject <pr_id> - Rechaza un pull request"
 
+# Comando para cancelar un PR
 class PRCancelCommand(Command):
     def __init__(self, repo_manager: RepositoryManager):
         self.repo_manager = repo_manager
     
     def execute(self, *args) -> str:
         if not args:
-            return "Error: Required argument: <pr_id>"
+            return "Error: Argumento requerido: <pr_id>"
         
         repo = self.repo_manager.current_repository
         if not repo:
-            return "Error: No repository selected"
+            return "Error: No hay repositorio seleccionado"
         
         pr_id = args[0]
         try:
             repo.cancel_pull_request(pr_id)
-            return f"Cancelled pull request {pr_id}"
+            return f"Pull request {pr_id} cancelado"
         except ValueError as e:
             return f"Error: {str(e)}"
     
     def get_help(self) -> str:
-        return "git pr cancel <pr_id> - Cancel a pull request"
+        return "git pr cancel <pr_id> - Cancela un pull request"
 
+# Comando para listar todos los PRs
 class PRListCommand(Command):
     def __init__(self, repo_manager: RepositoryManager):
         self.repo_manager = repo_manager
@@ -305,23 +323,24 @@ class PRListCommand(Command):
     def execute(self, *args) -> str:
         repo = self.repo_manager.current_repository
         if not repo:
-            return "Error: No repository selected"
+            return "Error: No hay repositorio seleccionado"
         
         prs = repo.list_pull_requests()
         if not prs:
-            return "No pull requests found"
+            return "No se encontraron pull requests"
         
-        output = ["Pull Requests:"]
+        salida = ["Pull Requests:"]
         for pr in prs:
-            output.append(
+            salida.append(
                 f"  {pr.id}: {pr.title} ({pr.status})\n"
-                f"    Source: {pr.source_branch} → Target: {pr.target_branch}"
+                f"    Origen: {pr.source_branch} → Destino: {pr.target_branch}"
             )
-        return "\n".join(output)
+        return "\n".join(salida)
     
     def get_help(self) -> str:
-        return "git pr list - List all pull requests"
+        return "git pr list - Lista todos los pull requests"
 
+# Comando para ver el siguiente PR en cola
 class PRNextCommand(Command):
     def __init__(self, repo_manager: RepositoryManager):
         self.repo_manager = repo_manager
@@ -329,45 +348,47 @@ class PRNextCommand(Command):
     def execute(self, *args) -> str:
         repo = self.repo_manager.current_repository
         if not repo:
-            return "Error: No repository selected"
+            return "Error: No hay repositorio seleccionado"
         
         pr = repo.get_next_pull_request()
         if not pr:
-            return "No pull requests in queue"
+            return "No hay pull requests en cola"
         
         return (
-            f"Next Pull Request:\n"
+            f"Siguiente Pull Request:\n"
             f"  ID: {pr.id}\n"
-            f"  Title: {pr.title}\n"
-            f"  Status: {pr.status}\n"
-            f"  Source: {pr.source_branch} → Target: {pr.target_branch}"
+            f"  Título: {pr.title}\n"
+            f"  Estado: {pr.status}\n"
+            f"  Origen: {pr.source_branch} → Destino: {pr.target_branch}"
         )
     
     def get_help(self) -> str:
-        return "git pr next - Show the next pull request in the queue"
+        return "git pr next - Muestra el siguiente pull request en cola"
 
+# Comando para etiquetar un PR
 class PRTagCommand(Command):
     def __init__(self, repo_manager: RepositoryManager):
         self.repo_manager = repo_manager
     
     def execute(self, *args) -> str:
         if len(args) < 2:
-            return "Error: Required arguments: <pr_id> <tag>"
+            return "Error: Argumentos requeridos: <pr_id> <etiqueta>"
         
         repo = self.repo_manager.current_repository
         if not repo:
-            return "Error: No repository selected"
+            return "Error: No hay repositorio seleccionado"
         
-        pr_id, tag = args
+        pr_id, etiqueta = args
         try:
-            repo.tag_pull_request(pr_id, tag)
-            return f"Added tag '{tag}' to pull request {pr_id}"
+            repo.tag_pull_request(pr_id, etiqueta)
+            return f"Etiqueta '{etiqueta}' añadida al pull request {pr_id}"
         except ValueError as e:
             return f"Error: {str(e)}"
     
     def get_help(self) -> str:
-        return "git pr tag <pr_id> <tag> - Add a tag to a pull request"
+        return "git pr tag <pr_id> <etiqueta> - Añade una etiqueta a un pull request"
 
+# Comando para limpiar todos los PRs
 class PRClearCommand(Command):
     def __init__(self, repo_manager: RepositoryManager):
         self.repo_manager = repo_manager
@@ -375,10 +396,10 @@ class PRClearCommand(Command):
     def execute(self, *args) -> str:
         repo = self.repo_manager.current_repository
         if not repo:
-            return "Error: No repository selected"
+            return "Error: No hay repositorio seleccionado"
         
         repo.clear_pull_requests()
-        return "Cleared all pull requests"
+        return "Todos los pull requests han sido eliminados"
     
     def get_help(self) -> str:
-        return "git pr clear - Clear all pull requests"
+        return "git pr clear - Elimina todos los pull requests"

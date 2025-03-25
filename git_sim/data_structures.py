@@ -1,23 +1,25 @@
 """
-Core data structures for the Git simulation system.
+Estructuras de datos centrales para el sistema de simulación Git.
 """
 from typing import Any, Optional, List, Dict, Set
 from dataclasses import dataclass
 from datetime import datetime
 
+# Nodo básico para estructuras enlazadas
 class Node:
     def __init__(self, data: Any):
         self.data = data
         self.next: Optional[Node] = None
 
+# Implementación de cola (FIFO)
 class Queue:
     def __init__(self):
-        self.front: Optional[Node] = None
-        self.rear: Optional[Node] = None
+        self.front: Optional[Node] = None  # Frente de la cola
+        self.rear: Optional[Node] = None   # Final de la cola
         self.size = 0
     
     def enqueue(self, data: Any) -> None:
-        """Add an item to the queue."""
+        """Añade un elemento al final de la cola."""
         new_node = Node(data)
         if self.rear is None:
             self.front = new_node
@@ -28,7 +30,7 @@ class Queue:
         self.size += 1
     
     def dequeue(self) -> Optional[Any]:
-        """Remove and return the front item from the queue."""
+        """Elimina y devuelve el elemento del frente de la cola."""
         if self.front is None:
             return None
         
@@ -42,33 +44,34 @@ class Queue:
         return data
     
     def peek(self) -> Optional[Any]:
-        """Look at the front item without removing it."""
+        """Mira el elemento del frente sin eliminarlo."""
         return self.front.data if self.front else None
     
     def is_empty(self) -> bool:
-        """Check if the queue is empty."""
+        """Verifica si la cola está vacía."""
         return self.size == 0
     
     def clear(self) -> None:
-        """Clear all items from the queue."""
+        """Limpia todos los elementos de la cola."""
         self.front = None
         self.rear = None
         self.size = 0
 
+# Implementación de pila (LIFO)
 class Stack:
     def __init__(self):
-        self.top: Optional[Node] = None
+        self.top: Optional[Node] = None  # Tope de la pila
         self.size = 0
     
     def push(self, data: Any) -> None:
-        """Push an item onto the stack."""
+        """Apila un elemento."""
         new_node = Node(data)
         new_node.next = self.top
         self.top = new_node
         self.size += 1
     
     def pop(self) -> Optional[Any]:
-        """Pop an item from the stack."""
+        """Desapila un elemento."""
         if not self.top:
             return None
         data = self.top.data
@@ -77,23 +80,25 @@ class Stack:
         return data
     
     def peek(self) -> Optional[Any]:
-        """Look at the top item without removing it."""
+        """Mira el elemento del tope sin eliminarlo."""
         return self.top.data if self.top else None
     
     def is_empty(self) -> bool:
-        """Check if the stack is empty."""
+        """Verifica si la pila está vacía."""
         return self.size == 0
     
     def clear(self) -> None:
-        """Clear all items from the stack."""
+        """Limpia todos los elementos de la pila."""
         self.top = None
         self.size = 0
 
+# Implementación de lista enlazada
 class LinkedList:
     def __init__(self):
         self.head: Optional[Node] = None
     
     def append(self, data: Any) -> None:
+        """Añade un elemento al final de la lista."""
         new_node = Node(data)
         if not self.head:
             self.head = new_node
@@ -104,6 +109,7 @@ class LinkedList:
         current.next = new_node
     
     def remove(self, data: Any) -> bool:
+        """Elimina un elemento de la lista."""
         if not self.head:
             return False
         
@@ -120,6 +126,7 @@ class LinkedList:
         return False
     
     def find(self, data: Any) -> Optional[Node]:
+        """Busca un elemento en la lista."""
         current = self.head
         while current:
             if current.data == data:
@@ -128,6 +135,7 @@ class LinkedList:
         return None
     
     def to_list(self) -> List[Any]:
+        """Convierte la lista enlazada a una lista Python."""
         result = []
         current = self.head
         while current:
@@ -135,23 +143,25 @@ class LinkedList:
             current = current.next
         return result
 
+# Clases de datos para el sistema Git:
+
 @dataclass
 class PullRequest:
-    """Represents a pull request."""
-    id: str  # Unique identifier
-    title: str
-    description: str
-    author: str
-    created_at: datetime
-    source_branch: str
-    target_branch: str
-    commit_ids: List[str]  # List of associated commit IDs
-    modified_files: Set[str]
-    reviewers: Set[str]
-    closed_at: Optional[datetime] = None
-    merged_at: Optional[datetime] = None
-    status: str = "open"  # open, approved, rejected, cancelled, merged
-    tags: Set[str] = None
+    """Representa un pull request."""
+    id: str  # Identificador único
+    title: str  # Título del PR
+    description: str  # Descripción
+    author: str  # Autor
+    created_at: datetime  # Fecha creación
+    source_branch: str  # Rama origen
+    target_branch: str  # Rama destino
+    commit_ids: List[str]  # IDs de commits asociados
+    modified_files: Set[str]  # Archivos modificados
+    reviewers: Set[str]  # Revisores
+    closed_at: Optional[datetime] = None  # Fecha cierre
+    merged_at: Optional[datetime] = None  # Fecha fusión
+    status: str = "open"  # Estados: open, approved, rejected, cancelled, merged
+    tags: Set[str] = None  # Etiquetas
     
     def __post_init__(self):
         if self.tags is None:
@@ -159,25 +169,27 @@ class PullRequest:
 
 @dataclass
 class StagedFile:
-    """Represents a file in the staging area."""
-    path: str
-    content: str
-    status: str  # 'A' for added, 'M' for modified, 'D' for deleted
-    checksum: str  # SHA-1 hash of the file content
-    last_commit_id: Optional[str]  # Reference to the last commit where this file was modified
+    """Representa un archivo en el área de staging."""
+    path: str  # Ruta del archivo
+    content: str  # Contenido
+    status: str  # 'A' para añadido, 'M' para modificado, 'D' para eliminado
+    checksum: str  # Hash SHA-1 del contenido
+    last_commit_id: Optional[str]  # Referencia al último commit donde se modificó
 
 @dataclass
 class Commit:
-    id: str  # SHA-1 hash
-    message: str
-    timestamp: datetime
-    author_email: str
-    parent_id: Optional[str]
-    changes: Dict[str, str]  # filename -> content
-    branch: str
+    """Representa un commit en el historial."""
+    id: str  # Hash SHA-1
+    message: str  # Mensaje del commit
+    timestamp: datetime  # Fecha y hora
+    author_email: str  # Email del autor
+    parent_id: Optional[str]  # ID del commit padre
+    changes: Dict[str, str]  # Diccionario de cambios: nombre_archivo -> contenido
+    branch: str  # Rama a la que pertenece
 
 @dataclass
 class FileStatus:
-    path: str
+    """Representa el estado de un archivo."""
+    path: str  # Ruta del archivo
     status: str  # 'modified', 'new', 'deleted'
-    content: str
+    content: str  # Contenido
