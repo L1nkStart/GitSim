@@ -50,56 +50,56 @@ Un sistema de simulación de Git basado en Python que implementa funcionalidades
 
 ```bash
 # Inicializar un nuevo repositorio
-git init <nombre> <ruta>
+init <nombre> <ruta>
 
 # Agregar archivo al área de staging
-git add <archivo>
+add <archivo>
 
 # Crear un nuevo commit
-git commit -m "<mensaje>"
+commit -m "<mensaje>"
 
 # Cambiar a un commit específico
-git checkout <id_commit>
+checkout <id_commit>
 
 # Mostrar estado del árbol de trabajo
-git status
+status
 
 # Mostrar historial de commits
-git log
+log
 ```
 
 ### Gestión de Pull Requests
 
 ```bash
 # Crear un nuevo pull request
-git pr create <título> <rama_origen> <rama_destino> <descripción>
+pr create <título> <rama_origen> <rama_destino> <descripción>
 
 # Mostrar estado del pull request
-git pr status <id_pr>
+pr status <id_pr>
 
 # Agregar un revisor
-git pr review <id_pr> <email_revisor>
+pr review <id_pr> <email_revisor>
 
 # Aprobar un pull request
-git pr approve <id_pr>
+pr approve <id_pr>
 
 # Rechazar un pull request
-git pr reject <id_pr>
+pr reject <id_pr>
 
 # Cancelar un pull request
-git pr cancel <id_pr>
+pr cancel <id_pr>
 
 # Listar todos los pull requests
-git pr list
+pr list
 
 # Mostrar siguiente pull request en la cola
-git pr next
+pr next
 
 # Agregar etiqueta al pull request
-git pr tag <id_pr> <etiqueta>
+pr tag <id_pr> <etiqueta>
 
 # Limpiar todos los pull requests
-git pr clear
+pr clear
 ```
 
 ## Estructuras de Datos
@@ -166,78 +166,32 @@ Los comandos pueden ser habilitados o deshabilitados a través del sistema de co
 - Carga y guarda configuraciones
 - Controla disponibilidad de comandos
 
-## Modelos de Datos
-
-### 1. Commit
-```python
-@dataclass
-class Commit:
-    id: str  # hash SHA-1
-    message: str
-    timestamp: datetime
-    author_email: str
-    parent_id: Optional[str]
-    changes: Dict[str, str]  # archivo -> contenido
-    branch: str
-```
-
-### 2. PullRequest
-```python
-@dataclass
-class PullRequest:
-    id: str
-    title: str
-    description: str
-    author: str
-    created_at: datetime
-    source_branch: str
-    target_branch: str
-    commit_ids: List[str]
-    modified_files: Set[str]
-    reviewers: Set[str]
-    closed_at: Optional[datetime]
-    merged_at: Optional[datetime]
-    status: str  # open, approved, rejected, cancelled, merged
-    tags: Set[str]
-```
-
-### 3. StagedFile
-```python
-@dataclass
-class StagedFile:
-    path: str
-    content: str
-    status: str  # 'A' para agregado, 'M' para modificado, 'D' para eliminado
-    checksum: str  # hash SHA-1 del contenido del archivo
-    last_commit_id: Optional[str]
-```
-
 ## Ejemplo de Uso
 
 ```python
 # Inicializar el CLI
-cli = GitSimCLI()
+py main.py
 
 # Crear un nuevo repositorio
-cli.execute('init', 'mi-repo', '/ruta/al/repo')
+init mi-repo '/ruta/al/repo'
 
 # Agregar un archivo
-cli.execute('add', 'ejemplo.txt')
+add 'ejemplo.txt'
 
 # Crear un commit
-cli.execute('commit', '-m', 'Commit inicial')
+commit -m 'Commit inicial'
 
 # Crear una nueva rama y agregar cambios
-cli.execute('checkout', '-b', 'rama-caracteristica')
-cli.execute('add', 'nueva-caracteristica.txt')
-cli.execute('commit', '-m', 'Agregar nueva característica')
+checkout -b 'rama-caracteristica'
+add nueva-caracteristica.txt'
+commit -m 'Agregar nueva característica'
 
 # Crear un pull request
-cli.execute('pr', 'create', 'Nueva Característica', 'rama-caracteristica', 'main', 'Agregando una nueva característica')
+pr create 'Nueva Característica' 'rama-caracteristica' main 'Agregando una nueva característica'
 
 # Revisar y aprobar el pull request
-cli.execute('pr', 'review', 'PR-1', 'revisor@ejemplo.com')
-cli.execute('pr', 'approve', 'PR-1')
+pr review 'PR-1' 'revisor@ejemplo.com'
+pr approve 'PR-1'
 ```
 
 ## Manejo de Errores
@@ -284,10 +238,3 @@ El sistema incluye manejo de errores completo:
 5. Usar etiquetas para categorización de PRs
 6. Mantener PRs enfocados y manejables
 
-## Limitaciones
-
-1. Almacenamiento solo en memoria
-2. Sin operaciones de red
-3. Limitado a operaciones de usuario único
-4. Gestión simplificada de ramas
-5. Funcionalidad básica de fusión
