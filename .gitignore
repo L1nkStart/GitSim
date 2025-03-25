@@ -5,7 +5,4 @@ logs
 __pycache__
 *.pyc
 
-# Runtime data
-pids
-*.pid
-*.seed
+.gitignore
