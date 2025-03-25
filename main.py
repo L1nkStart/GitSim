@@ -1,3 +1,6 @@
+"""
+Punto de entrada principal para el sistema de la simulacion de git
+"""
 from git_sim.cli import GitSimCLI
 
 def main():
