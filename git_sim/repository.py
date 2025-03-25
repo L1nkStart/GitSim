@@ -14,20 +14,24 @@ class Repository:
     def __init__(self, name: str, path: str):
         self.name = name
         self.path = path
-        self.staging_stack = Stack()  
+        self.staging_stack = Stack()  # Stack of StagedFile objects
         self.commits: Dict[str, Commit] = {}
         self.current_branch = "main"
-        self.branches: Dict[str, str] = {"main": None}  
-        self.head: Optional[str] = None  
-        self.working_directory: Dict[str, str] = {}  
+        self.branches: Dict[str, str] = {"main": None}  # branch_name -> commit_id
+        self.head: Optional[str] = None  # current commit id
+        self.working_directory: Dict[str, str] = {}  # filename -> content
         self.detached_head = False
-        self.pull_requests = Queue()  
-        self.pr_counter = 0  
-        self.pr_map: Dict[str, PullRequest] = {}  
+        self.pull_requests = Queue()  # Queue of PullRequest objects
+        self.pr_counter = 0  # Counter for generating PR IDs
+        self.pr_map: Dict[str, PullRequest] = {}  # ID -> PullRequest mapping
     
     def calculate_file_hash(self, content: str) -> str:
         """Calculate SHA-1 hash of file content."""
         return hashlib.sha1(content.encode()).hexdigest()
+    
+    def list_branches(self) -> List[str]:
+        """List all branches in the repository."""
+        return list(self.branches.keys())
     
     def create_pull_request(self, title: str, description: str, source_branch: str, target_branch: str, author: str) -> str:
         """Create a new pull request."""
@@ -36,6 +40,7 @@ class Repository:
         if target_branch not in self.branches:
             raise ValueError(f"Target branch '{target_branch}' does not exist")
         
+        # Get commits that are in source branch but not in target branch
         source_commits = self._get_branch_commits(source_branch)
         target_commits = self._get_branch_commits(target_branch)
         unique_commits = [c for c in source_commits if c not in target_commits]
@@ -43,13 +48,16 @@ class Repository:
         if not unique_commits:
             raise ValueError("No changes to merge")
         
+        # Get modified files from these commits
         modified_files = set()
         for commit_id in unique_commits:
             modified_files.update(self.commits[commit_id].changes.keys())
         
+        # Generate PR ID
         self.pr_counter += 1
         pr_id = f"PR-{self.pr_counter}"
         
+        # Create pull request
         pr = PullRequest(
             id=pr_id,
             title=title,
@@ -63,6 +71,7 @@ class Repository:
             reviewers=set()
         )
         
+        # Add to queue and mapping
         self.pull_requests.enqueue(pr)
         self.pr_map[pr_id] = pr
         
@@ -177,12 +186,14 @@ class Repository:
             last_commit_id=last_commit_id
         )
         
+        # Clear any previous version of this file from the stack
         temp_stack = Stack()
         while not self.staging_stack.is_empty():
             item = self.staging_stack.pop()
             if item.path != filename:
                 temp_stack.push(item)
         
+        # Restore other files and add the new one
         while not temp_stack.is_empty():
             self.staging_stack.push(temp_stack.pop())
         self.staging_stack.push(staged_file)
@@ -192,6 +203,7 @@ class Repository:
         if self.staging_stack.is_empty():
             raise ValueError("Nothing to commit")
         
+        # Collect all staged files
         changes: Dict[str, str] = {}
         temp_stack = Stack()
         while not self.staging_stack.is_empty():
@@ -199,15 +211,18 @@ class Repository:
             changes[staged_file.path] = staged_file.content
             temp_stack.push(staged_file)
         
+        # Restore the staging stack (though we'll clear it after commit)
         while not temp_stack.is_empty():
             self.staging_stack.push(temp_stack.pop())
         
+        # Create commit ID from content and metadata
         timestamp = datetime.now()
         content_str = f"{message}{timestamp}{self.head}{author_email}"
         for filename, content in sorted(changes.items()):
             content_str += f"{filename}{content}"
         commit_id = hashlib.sha1(content_str.encode()).hexdigest()
         
+        # Create new commit
         new_commit = Commit(
             id=commit_id,
             message=message,
@@ -218,6 +233,7 @@ class Repository:
             branch=self.current_branch
         )
         
+        # Update repository state
         self.commits[commit_id] = new_commit
         self.head = commit_id
         if not self.detached_head:
@@ -225,41 +241,6 @@ class Repository:
         self.staging_stack.clear()
         
         return commit_id
-    
-    def checkout_commit(self, commit_id: str) -> None:
-        """Checkout a specific commit."""
-        if commit_id not in self.commits:
-            raise ValueError(f"Commit '{commit_id}' not found")
-        
-        self.head = commit_id
-        self.detached_head = True
-        self.working_directory = dict(self.commits[commit_id].changes)
-        self.staging_stack.clear()
-    
-    def status(self) -> List[FileStatus]:
-        """Get the status of files in the working directory and staging area."""
-        status_list = []
-        staged_files = set()
-        
-        temp_stack = Stack()
-        while not self.staging_stack.is_empty():
-            staged_file = self.staging_stack.pop()
-            staged_files.add(staged_file.path)
-            status_list.append(FileStatus(
-                path=staged_file.path,
-                status=staged_file.status,
-                content=staged_file.content
-            ))
-            temp_stack.push(staged_file)
-        
-        while not temp_stack.is_empty():
-            self.staging_stack.push(temp_stack.pop())
-        
-        for filename, content in self.working_directory.items():
-            if filename not in staged_files:
-                status_list.append(FileStatus(filename, "new", content))
-        
-        return status_list
     
     def branch(self, name: str) -> None:
         """Create a new branch pointing to the current commit."""
@@ -271,15 +252,63 @@ class Repository:
         """Switch to a different branch."""
         if branch_name not in self.branches:
             raise ValueError(f"Branch '{branch_name}' does not exist")
+        
+        # Limpiar el área de staging antes de cambiar de rama
+        if not self.staging_stack.is_empty():
+            raise ValueError("Cannot switch branches with uncommitted changes")
+        
         self.current_branch = branch_name
         self.head = self.branches[branch_name]
         self.detached_head = False
         
+        # Update working directory to match the branch's state
         if self.head and self.head in self.commits:
             self.working_directory = dict(self.commits[self.head].changes)
         else:
             self.working_directory.clear()
         self.staging_stack.clear()
+    
+    def checkout_commit(self, commit_id: str) -> None:
+        """Checkout a specific commit."""
+        if commit_id not in self.commits:
+            raise ValueError(f"Commit '{commit_id}' not found")
+        
+        # Limpiar el área de staging antes de cambiar a un commit específico
+        if not self.staging_stack.is_empty():
+            raise ValueError("Cannot checkout commit with uncommitted changes")
+        
+        self.head = commit_id
+        self.detached_head = True
+        self.working_directory = dict(self.commits[commit_id].changes)
+        self.staging_stack.clear()
+    
+    def status(self) -> List[FileStatus]:
+        """Get the status of files in the working directory and staging area."""
+        status_list = []
+        staged_files = set()
+        
+        # Process staged files
+        temp_stack = Stack()
+        while not self.staging_stack.is_empty():
+            staged_file = self.staging_stack.pop()
+            staged_files.add(staged_file.path)
+            status_list.append(FileStatus(
+                path=staged_file.path,
+                status=staged_file.status,
+                content=staged_file.content
+            ))
+            temp_stack.push(staged_file)
+        
+        # Restore staging stack
+        while not temp_stack.is_empty():
+            self.staging_stack.push(temp_stack.pop())
+        
+        # Check working directory for unstaged changes
+        for filename, content in self.working_directory.items():
+            if filename not in staged_files:
+                status_list.append(FileStatus(filename, "new", content))
+        
+        return status_list
     
     def get_commit_history(self) -> List[Commit]:
         """Return the commit history for the current branch."""

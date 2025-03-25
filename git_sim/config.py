@@ -19,7 +19,7 @@ class Config:
         except FileNotFoundError:
             # Default configuration with all commands enabled
             self.enabled_commands = {
-                'init', 'add', 'commit', 'checkout', 'status', 'log',
+                'init', 'add', 'commit', 'branch', 'checkout', 'status', 'log',
                 'pr'  # PR commands are handled as subcommands
             }
             self.save_config()

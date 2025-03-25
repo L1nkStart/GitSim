@@ -75,27 +75,75 @@ class CommitCommand(Command):
     def get_help(self) -> str:
         return 'git commit -m "<message>" - Create a new commit'
 
+class BranchCommand(Command):
+    def __init__(self, repo_manager: RepositoryManager):
+        self.repo_manager = repo_manager
+    
+    def execute(self, *args) -> str:
+        repo = self.repo_manager.current_repository
+        if not repo:
+            return "Error: No repository selected"
+        
+        # Si no hay argumentos, listar las ramas
+        if not args:
+            branches = repo.list_branches()
+            current = repo.current_branch
+            output = []
+            for branch in branches:
+                prefix = "* " if branch == current else "  "
+                output.append(f"{prefix}{branch}")
+            return "\n".join(output) if output else "No branches exist yet"
+        
+        # Crear nueva rama
+        branch_name = args[0]
+        try:
+            repo.branch(branch_name)
+            return f"Created branch '{branch_name}'"
+        except ValueError as e:
+            return f"Error: {str(e)}"
+    
+    def get_help(self) -> str:
+        return "git branch [<branch-name>] - List or create branches"
+
 class CheckoutCommand(Command):
     def __init__(self, repo_manager: RepositoryManager):
         self.repo_manager = repo_manager
     
     def execute(self, *args) -> str:
         if not args:
-            return "Error: Required argument: <commit_id>"
+            return "Error: Required argument: <branch-name> or <commit-id> or -b <new-branch>"
         
         repo = self.repo_manager.current_repository
         if not repo:
             return "Error: No repository selected"
         
-        commit_id = args[0]
+        # Crear y cambiar a nueva rama
+        if args[0] == '-b':
+            if len(args) < 2:
+                return "Error: Branch name required"
+            branch_name = args[1]
+            try:
+                repo.branch(branch_name)
+                repo.checkout(branch_name)
+                return f"Switched to a new branch '{branch_name}'"
+            except ValueError as e:
+                return f"Error: {str(e)}"
+        
+        # Cambiar a rama o commit existente
+        target = args[0]
         try:
-            repo.checkout_commit(commit_id)
-            return f"HEAD is now at {commit_id}"
+            # Intentar cambiar a una rama primero
+            if target in repo.branches:
+                repo.checkout(target)
+                return f"Switched to branch '{target}'"
+            # Si no es una rama, intentar cambiar a un commit
+            repo.checkout_commit(target)
+            return f"HEAD is now at {target}"
         except ValueError as e:
             return f"Error: {str(e)}"
     
     def get_help(self) -> str:
-        return "git checkout <commit_id> - Switch to specified commit"
+        return "git checkout [-b] <branch-name> | <commit-id> - Switch branches or restore working tree files"
 
 class StatusCommand(Command):
     def __init__(self, repo_manager: RepositoryManager):
@@ -107,12 +155,15 @@ class StatusCommand(Command):
             return "Error: No repository selected"
         
         status_list = repo.status()
-        if not status_list:
-            return "Nothing to commit, working tree clean"
+        output = [f"On branch {repo.current_branch}"]
         
-        output = ["Changes not staged for commit:"]
-        for status in status_list:
-            output.append(f"  {status.status}: {status.path}")
+        if not status_list:
+            output.append("Nothing to commit, working tree clean")
+        else:
+            output.append("\nChanges not staged for commit:")
+            for status in status_list:
+                output.append(f"  {status.status}: {status.path}")
+        
         return "\n".join(output)
     
     def get_help(self) -> str:

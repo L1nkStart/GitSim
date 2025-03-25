@@ -8,7 +8,8 @@ from .commands import (
     CheckoutCommand, StatusCommand, LogCommand,
     PRCreateCommand, PRStatusCommand, PRReviewCommand,
     PRApproveCommand, PRRejectCommand, PRCancelCommand,
-    PRListCommand, PRNextCommand, PRTagCommand, PRClearCommand
+    PRListCommand, PRNextCommand, PRTagCommand, PRClearCommand,
+    BranchCommand
 )
 from .config import Config
 
@@ -20,6 +21,7 @@ class GitSimCLI:
             'init': InitCommand(self.repo_manager),
             'add': AddCommand(self.repo_manager),
             'commit': CommitCommand(self.repo_manager),
+            'branch': BranchCommand(self.repo_manager),
             'checkout': CheckoutCommand(self.repo_manager),
             'status': StatusCommand(self.repo_manager),
             'log': LogCommand(self.repo_manager),
@@ -60,8 +62,8 @@ class GitSimCLI:
             return f"Error: {str(e)}"
     
     def get_help(self) -> str:
-        """Menu de ayuda para los comandos."""
-        help_text = ["Comandos permitidos:"]
+        """Get help information for all enabled commands."""
+        help_text = ["Available commands:"]
         for name, cmd in self.commands.items():
             if self.config.is_command_enabled(name):
                 if isinstance(cmd, dict):  # PR subcommands
